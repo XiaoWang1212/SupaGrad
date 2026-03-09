@@ -6,7 +6,6 @@ from src.routes.health import health_bp
 from src.routes.html_upload import html_upload_bp
 from src.routes.manual import manual_bp
 
-
 def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(config_name))
