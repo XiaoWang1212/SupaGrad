@@ -5,30 +5,28 @@ class BaseConfig:
     DEBUG = False
     TESTING = False
     APP_NAME = "SupaGrad API"
-    APP_ENV = os.getenv("APP_ENV", "development")
-    SUPABASE_URL = os.getenv("SUPABASE_URL")
-    SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY")
-    SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY")
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+    SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "")
 
 
 class DevelopmentConfig(BaseConfig):
-    DEBUG = True
+    pass
 
 
 class ProductionConfig(BaseConfig):
-    DEBUG = False
+    pass
 
 
 class TestingConfig(BaseConfig):
-    TESTING = True
-    DEBUG = True
+    pass
 
 
 def get_config(config_name: str | None = None):
-    env = (config_name or os.getenv("APP_ENV", "development")).lower()
-
-    if env == "production":
-        return ProductionConfig
-    if env == "testing":
-        return TestingConfig
-    return DevelopmentConfig
+    config_map = {
+        None: DevelopmentConfig,
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+        "testing": TestingConfig,
+    }
+    return config_map.get(config_name, DevelopmentConfig)

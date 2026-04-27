@@ -44,12 +44,17 @@
         border-radius: 8px;
         box-sizing: border-box;
       }
-      button {
+      button,
+      .button-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         padding: 10px 16px;
         border: 0;
         border-radius: 8px;
         background: #2563eb;
         color: #fff;
+        text-decoration: none;
         cursor: pointer;
       }
       .result {
@@ -79,10 +84,9 @@
     <div class="wrap">
       <h1>HTML / 另存網頁 上傳解析</h1>
       <p class="hint">
-        可上傳 .html / .htm /
-        .webarchive。這頁是獨立功能，不會影響你原本的學分審查頁。
+        可上傳 .html / .htm / .webarchive。這頁是首頁，解析後可直接進課程表。
       </p>
-      <p class="hint"><a href="/">返回手動學分審查頁</a></p>
+      <p class="hint"><a href="/">回到首頁</a></p>
 
       <form id="uploadForm" enctype="multipart/form-data">
         <input
@@ -110,13 +114,90 @@
       </form>
 
       <div id="result" class="result" style="display: none"></div>
+      <div
+        id="curriculumLink"
+        class="result"
+        style="display: none; margin-top: 12px"
+      >
+        <a id="curriculumButton" class="button-link" href="#">前往學分頁</a>
+      </div>
       <pre id="preview" style="display: none"></pre>
     </div>
 
     <script>
+      const STORAGE_KEY_STUDENT_ID = "sugrad_student_id";
+      const STORAGE_KEY_LAST_PARSE = "sugrad_last_parse";
       const form = document.getElementById("uploadForm");
+      const studentIdInput = document.getElementById("student_id");
+      const requiredCreditsInput = document.getElementById("required_credits");
       const resultEl = document.getElementById("result");
       const previewEl = document.getElementById("preview");
+      const curriculumLink = document.getElementById("curriculumLink");
+      const curriculumButton = document.getElementById("curriculumButton");
+
+      const savedStudentId = localStorage.getItem(STORAGE_KEY_STUDENT_ID);
+      if (savedStudentId) {
+        studentIdInput.value = savedStudentId;
+      }
+
+      const savedParse = localStorage.getItem(STORAGE_KEY_LAST_PARSE);
+      if (savedParse) {
+        try {
+          const parsedData = JSON.parse(savedParse);
+          renderParsedResult(parsedData);
+        } catch (_error) {
+          localStorage.removeItem(STORAGE_KEY_LAST_PARSE);
+        }
+      }
+
+      studentIdInput.addEventListener("input", () => {
+        if (studentIdInput.value.trim()) {
+          localStorage.setItem(
+            STORAGE_KEY_STUDENT_ID,
+            studentIdInput.value.trim(),
+          );
+        } else {
+          localStorage.removeItem(STORAGE_KEY_STUDENT_ID);
+        }
+      });
+
+      function renderParsedResult(data) {
+        const department = data.student?.department?.trim();
+        resultEl.innerHTML = `
+          <div class="row"><strong>檔名：</strong>${data.filename}</div>
+          <div class="row"><strong>檔案大小：</strong>${data.byte_size} bytes</div>
+          <div class="row"><strong>學號：</strong>${data.student?.student_id || "(未解析)"}</div>
+          <div class="row"><strong>姓名：</strong>${data.student?.student_name || "(未解析)"}</div>
+          <div class="row"><strong>系所：</strong>${department || "(未解析)"}</div>
+          <div class="row"><strong>累計學分(頁面)：</strong>${data.student?.accumulated_credits_from_html ?? "(未解析)"}</div>
+          <div class="row"><strong>累計學分(計算)：</strong>${data.credit_summary?.completed_credits_calculated ?? 0}</div>
+          <div class="row"><strong>EMI學分(頁面)：</strong>${data.student?.emi_credits_from_html ?? "(未解析)"}</div>
+          <div class="row"><strong>EMI學分(計算)：</strong>${data.credit_summary?.emi_earned_credits_calculated ?? 0}</div>
+          <div class="row"><strong>通過課程數：</strong>${data.passed_course_count ?? 0}</div>
+          <div class="row"><strong>資料庫儲存：</strong>${data.database?.saved ? "成功" : "失敗"}</div>
+          <div class="row"><strong>資料庫訊息：</strong>${data.database?.error || `已寫入 ${data.database?.saved_course_count ?? 0} 筆`}</div>
+        `;
+
+        if (department) {
+          curriculumButton.href = `/api/curriculum/view?program_name=${encodeURIComponent(department)}`;
+          curriculumButton.textContent = `前往 ${department} 學分頁`;
+          curriculumLink.style.display = "block";
+        } else {
+          curriculumLink.style.display = "none";
+        }
+
+        resultEl.style.display = "block";
+        previewEl.textContent = JSON.stringify(
+          {
+            credits_by_course_type: data.credit_summary?.credits_by_course_type,
+            credits_by_prefix: data.credit_summary?.credits_by_prefix,
+            preview: data.text_preview,
+          },
+          null,
+          2,
+        );
+        previewEl.style.display = "block";
+      }
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -137,33 +218,23 @@
             throw new Error(data.error || "解析失敗");
           }
 
-          resultEl.innerHTML = `
-            <div class="row"><strong>檔名：</strong>${data.filename}</div>
-            <div class="row"><strong>檔案大小：</strong>${data.byte_size} bytes</div>
-            <div class="row"><strong>學號：</strong>${data.student?.student_id || "(未解析)"}</div>
-            <div class="row"><strong>姓名：</strong>${data.student?.student_name || "(未解析)"}</div>
-            <div class="row"><strong>累計學分(頁面)：</strong>${data.student?.accumulated_credits_from_html ?? "(未解析)"}</div>
-            <div class="row"><strong>累計學分(計算)：</strong>${data.credit_summary?.completed_credits_calculated ?? 0}</div>
-            <div class="row"><strong>EMI學分(頁面)：</strong>${data.student?.emi_credits_from_html ?? "(未解析)"}</div>
-            <div class="row"><strong>EMI學分(計算)：</strong>${data.credit_summary?.emi_earned_credits_calculated ?? 0}</div>
-            <div class="row"><strong>通過課程數：</strong>${data.passed_course_count ?? 0}</div>
-            <div class="row"><strong>資料庫儲存：</strong>${data.database?.saved ? "成功" : "失敗"}</div>
-            <div class="row"><strong>資料庫訊息：</strong>${data.database?.error || `已寫入 ${data.database?.saved_course_count ?? 0} 筆`}</div>
-          `;
-
-          previewEl.textContent = JSON.stringify(
-            {
-              credits_by_course_type:
-                data.credit_summary?.credits_by_course_type,
-              credits_by_prefix: data.credit_summary?.credits_by_prefix,
-              preview: data.text_preview,
+          const department = data.student?.department?.trim();
+          const parsedRecord = {
+            ...data,
+            student: {
+              ...data.student,
+              department: department,
             },
-            null,
-            2,
+          };
+          localStorage.setItem(
+            STORAGE_KEY_LAST_PARSE,
+            JSON.stringify(parsedRecord),
           );
-          previewEl.style.display = "block";
+
+          renderParsedResult(parsedRecord);
         } catch (error) {
           resultEl.textContent = `錯誤：${error.message}`;
+          resultEl.style.display = "block";
         }
       });
     </script>

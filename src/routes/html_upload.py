@@ -7,7 +7,7 @@ from src.services.html_upload_service import analyze_html_document
 html_upload_bp = Blueprint("html_upload", __name__)
 
 
-@html_upload_bp.get("/html-upload")
+@html_upload_bp.get("/")
 def html_upload_page():
     return render_template("html_upload.html")
 

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SupaGrad 課程表</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        background: #f7f8fa;
+        color: #1f2937;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 24px auto;
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 2rem;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin: 20px 0;
+      }
+      .stat-card {
+        background: #f3f4f6;
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 5px solid #2563eb;
+      }
+      .stat-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+      }
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #1f2937;
+      }
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin: 20px 0;
+      }
+      .category-box {
+        background: #e0f2fe;
+        padding: 12px;
+        border-radius: 8px;
+        border: 2px solid #0ea5e9;
+      }
+      .category-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #0369a1;
+      }
+      .category-stat {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0c4a6e;
+      }
+      .category-count {
+        font-size: 0.85rem;
+        color: #0369a1;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 0.95rem;
+      }
+      thead {
+        background: #1e40af;
+        color: #fff;
+      }
+      th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        border: 1px solid #ddd;
+      }
+      td {
+        padding: 10px 12px;
+        border: 1px solid #e5e7eb;
+      }
+      tbody tr:nth-child(odd) {
+        background: #f9fafb;
+      }
+      tbody tr:hover {
+        background: #f3f4f6;
+      }
+      .category-badge {
+        display: inline-block;
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      .semester-value {
+        background: #dcfce7;
+        color: #166534;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        display: inline-block;
+        text-align: center;
+        min-width: 40px;
+      }
+      .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #6b7280;
+      }
+      .error {
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 5px solid #dc2626;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6b7280;
+      }
+      .year-section {
+        margin-top: 24px;
+        padding: 16px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border-left: 5px solid #8b5cf6;
+      }
+      .year-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 12px;
+      }
+      .semester-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .semester-info {
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border-left: 3px solid #f59e0b;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 id="title">課程表</h1>
+
+      <div id="error" class="error" style="display: none"></div>
+      <div id="loading" class="loading" style="display: none">載入中...</div>
+      <div id="content" style="display: none">
+        <!-- 統計概覽 -->
+        <div class="summary">
+          <div class="stat-card">
+            <div class="stat-label">總課程數</div>
+            <div class="stat-value" id="total-courses">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">畢業學分</div>
+            <div class="stat-value" id="total-credits">0</div>
+          </div>
+        </div>
+
+        <!-- 分類統計 -->
+        <div class="category-grid" id="categories"></div>
+
+        <!-- 課程表 -->
+        <table>
+          <thead>
+            <tr>
+              <th style="min-width: 150px">課程名稱</th>
+              <th style="min-width: 100px">課號</th>
+              <th style="min-width: 60px">學分</th>
+              <th>類別</th>
+              <th colspan="2">大一</th>
+              <th colspan="2">大二</th>
+              <th colspan="2">大三</th>
+              <th colspan="2">大四</th>
+            </tr>
+            <tr style="background: #dbeafe">
+              <th colspan="4"></th>
+              <th>上</th>
+              <th>下</th>
+              <th>上</th>
+              <th>下</th>
+              <th>上</th>
+              <th>下</th>
+              <th>上</th>
+              <th>下</th>
+            </tr>
+          </thead>
+          <tbody id="courses-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const programName = params.get("program_name");
+
+      const errorEl = document.getElementById("error");
+      const loadingEl = document.getElementById("loading");
+      const contentEl = document.getElementById("content");
+      const titleEl = document.getElementById("title");
+      const coursesAbodyEl = document.getElementById("courses-tbody");
+
+      async function loadCurriculum() {
+        if (!programName) {
+          errorEl.textContent = "缺少 program_name 參數";
+          errorEl.style.display = "block";
+          return;
+        }
+
+        loadingEl.style.display = "block";
+        titleEl.textContent = programName;
+
+        try {
+          const response = await fetch(
+            `/api/curriculum/?program_name=${encodeURIComponent(programName)}`
+          );
+          if (!response.ok) {
+            throw new Error("查詢失敗");
+          }
+
+          const data = await response.json();
+
+          if (!data.courses || data.courses.length === 0) {
+            errorEl.textContent = "找不到該科系資料";
+            errorEl.style.display = "block";
+            loadingEl.style.display = "none";
+            return;
+          }
+
+          renderCurriculum(data);
+          loadingEl.style.display = "none";
+          contentEl.style.display = "block";
+        } catch (error) {
+          errorEl.textContent = `錯誤：${error.message}`;
+          errorEl.style.display = "block";
+          loadingEl.style.display = "none";
+        }
+      }
+
+      function renderCurriculum(data) {
+        // 統計
+        document.getElementById("total-courses").textContent =
+          data.summary.total_courses;
+        document.getElementById("total-credits").textContent =
+          data.summary.total_credits;
+
+        // 分類
+        const categoriesEl = document.getElementById("categories");
+        Object.entries(data.summary.by_category).forEach(([cat, stats]) => {
+          const box = document.createElement("div");
+          box.className = "category-box";
+          box.innerHTML = `
+            <div class="category-title">${cat}</div>
+            <div class="category-stat">${stats.total_credits}</div>
+            <div class="category-count">${stats.count} 門課</div>
+          `;
+          categoriesEl.appendChild(box);
+        });
+
+        // 課程表
+        data.courses.forEach((course) => {
+          const tr = document.createElement("tr");
+          const semesters = [
+            course.schedule.year1_fall,
+            course.schedule.year1_spring,
+            course.schedule.year2_fall,
+            course.schedule.year2_spring,
+            course.schedule.year3_fall,
+            course.schedule.year3_spring,
+            course.schedule.year4_fall,
+            course.schedule.year4_spring,
+          ];
+
+          tr.innerHTML = `
+            <td><strong>${course.course_name}</strong></td>
+            <td><small>${course.course_ids.join(", ") || "-"}</small></td>
+            <td style="text-align: center; font-weight: 600">${course.credits || "-"}</td>
+            <td><span class="category-badge">${course.category}</span></td>
+            ${semesters
+              .map(
+                (val) =>
+                  `<td style="text-align: center">${val !== null && val !== undefined ? `<span class="semester-value">${val}</span>` : "-"}</td>`
+              )
+              .join("")}
+          `;
+          coursesAbodyEl.appendChild(tr);
+        });
+      }
+
+      loadCurriculum();
+    </script>
+  </body>
+</html>
