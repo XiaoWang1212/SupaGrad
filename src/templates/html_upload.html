@@ -114,6 +114,7 @@
       </form>
 
       <div id="result" class="result" style="display: none"></div>
+      <div id="analysis" class="result" style="display: none"></div>
       <div
         id="curriculumLink"
         class="result"
@@ -131,6 +132,7 @@
       const studentIdInput = document.getElementById("student_id");
       const requiredCreditsInput = document.getElementById("required_credits");
       const resultEl = document.getElementById("result");
+      const analysisEl = document.getElementById("analysis");
       const previewEl = document.getElementById("preview");
       const curriculumLink = document.getElementById("curriculumLink");
       const curriculumButton = document.getElementById("curriculumButton");
@@ -184,6 +186,20 @@
           curriculumLink.style.display = "block";
         } else {
           curriculumLink.style.display = "none";
+        }
+
+        if (data.analysis?.suggestions?.length) {
+          analysisEl.innerHTML = `
+            <div class="row"><strong>AI 建議：</strong></div>
+            <ul>
+              ${data.analysis.suggestions
+                .map((suggestion) => `<li>${suggestion}</li>`)
+                .join("")}
+            </ul>
+          `;
+          analysisEl.style.display = "block";
+        } else {
+          analysisEl.style.display = "none";
         }
 
         resultEl.style.display = "block";
